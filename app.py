@@ -420,7 +420,7 @@ def display_chat_message(role, content, response_time=None):
 
 def main():
     # Header
-    st.markdown('<div class="main-header">🤖 اردو چیٹ بوٹ</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">Urdu Chatbot 🤖</div>', unsafe_allow_html=True)
     
     # Display system info
     st.sidebar.markdown("### System Information")
@@ -539,7 +539,7 @@ def main():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("💬 چیٹ باکس")
+        st.subheader("Chat Box💬")
         
         # Initialize chat history
         if 'messages' not in st.session_state:
@@ -588,7 +588,7 @@ def main():
             st.rerun()
 
     with col2:
-        st.subheader("📊 نظام کی معلومات")
+        st.subheader("Setup Information📊")
         
         st.info(f"""
         **System Specifications:**
@@ -599,17 +599,18 @@ def main():
         - Model: Loaded successfully
         """)
         
-        st.subheader("💡 تجاویز")
+        st.subheader("Sample Text 🙂")
         st.markdown("""
-        - مناسب اردو علامات استعمال کریں
-        - جملے واضح اور جامع رکھیں
-        - ماڈل مکمل جملوں کے ساتھ بہتر کام کرتا ہے
-        - جواب لفظ بہ لفظ تیار ہوتے ہیں
+            السلام علیکم
+            آپ کا نام کیا ہے
+            موسم کیسا ہے
+            آپ کیسے ہیں
+             شکریہ
         """)
         
         # Chat controls
-        st.subheader("🛠️ چیٹ کنٹرولز")
-        if st.button("مکالمہ صاف کریں", use_container_width=True):
+        st.subheader("ChatBot Controller🛠️  ")
+        if st.button("Clear chat  ", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
         
@@ -617,18 +618,17 @@ def main():
         user_messages = len([m for m in st.session_state.messages if m["role"] == "user"])
         bot_messages = len([m for m in st.session_state.messages if m["role"] == "assistant"])
         
-        st.metric("کل پیغامات", len(st.session_state.messages))
-        st.metric("صارف کے پیغامات", user_messages)
-        st.metric("بوٹ کے پیغامات", bot_messages)
+        st.metric("Total Chats ", len(st.session_state.messages))
+        st.metric("User Messages", user_messages)
+        st.metric("Bot Messages  ", bot_messages)
 
     # Footer
     st.markdown("---")
     st.markdown(
-        "**اردو چیٹ بوٹ** | "
-        "Streamlit اور PyTorch کے ساتھ بنایا گیا | "
-        "ٹرانسفارمر ماڈل برائے اردو زبان کی پروسیسنگ"
+   "Created By Abdul Basit ❄️ & Rehana Hassan "
     )
 
 if __name__ == "__main__":
     main()
+
 
