@@ -3,8 +3,6 @@ import os
 import sys
 import time
 import requests
-import zipfile
-from pathlib import Path
 
 # Check if we're in Streamlit Cloud and configure PyTorch accordingly
 if 'STREAMLIT_SHARING_MODE' in os.environ:
@@ -68,56 +66,19 @@ st.markdown("""
     .download-btn {
         background-color: #4CAF50;
         color: white;
-        padding: 10px 20px;
+        padding: 12px 24px;
         text-align: center;
         text-decoration: none;
         display: inline-block;
         font-size: 16px;
-        margin: 4px 2px;
+        margin: 10px 0;
         cursor: pointer;
         border-radius: 5px;
+        border: none;
+        width: 100%;
     }
 </style>
 """, unsafe_allow_html=True)
-
-def download_model_from_github():
-    """Download final_model.pt from GitHub releases"""
-    model_url = "https://github.com/Abdulbaset1/Urdu_Chatbot/releases/download/final_model/final_model.pt"
-    local_path = "final_model.pt"
-    
-    if os.path.exists(local_path):
-        return local_path
-    
-    st.warning("📥 Downloading model file from GitHub Releases...")
-    
-    try:
-        response = requests.get(model_url, stream=True)
-        response.raise_for_status()
-        
-        total_size = int(response.headers.get('content-length', 0))
-        block_size = 8192
-        
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        with open(local_path, 'wb') as f:
-            downloaded_size = 0
-            for data in response.iter_content(block_size):
-                f.write(data)
-                downloaded_size += len(data)
-                if total_size > 0:
-                    progress = min(downloaded_size / total_size, 1.0)
-                    progress_bar.progress(progress)
-                    status_text.text(f"Downloaded {downloaded_size}/{total_size} bytes ({progress:.1%})")
-        
-        progress_bar.empty()
-        status_text.empty()
-        st.success("✅ Model downloaded successfully!")
-        return local_path
-        
-    except Exception as e:
-        st.error(f"❌ Failed to download model: {str(e)}")
-        return None
 
 class UrduChatbot:
     def __init__(self, model_path, vocab_path):
@@ -125,8 +86,8 @@ class UrduChatbot:
         self.device = torch.device('cpu')
         st.info(f"Using device: {self.device}")
         
+        # First load tokenizer and set special tokens
         self.tokenizer = self.load_tokenizer(vocab_path)
-        self.model = self.load_model(model_path)
         
         # Get special tokens
         self.CLS_ID = self.tokenizer.token_to_id("[CLS]")
@@ -135,6 +96,9 @@ class UrduChatbot:
         self.UNK_ID = self.tokenizer.token_to_id("[UNK]") or 1
         
         self.max_len = 64
+        
+        # Then load model
+        self.model = self.load_model(model_path)
 
     def load_tokenizer(self, vocab_path):
         """Load the tokenizer from vocabulary.txt"""
@@ -175,7 +139,7 @@ class UrduChatbot:
                 }
                 vocab_size = self.tokenizer.get_vocab_size()
             
-            # Initialize model
+            # Initialize model - NOW we have PAD_ID available
             model = TransformerSeq2Seq(
                 vocab_size=vocab_size,
                 d_model=config["d_model"],
@@ -185,7 +149,7 @@ class UrduChatbot:
                 d_ff=config["d_ff"],
                 dropout=config["dropout"],
                 max_len=config["max_len"],
-                pad_id=self.PAD_ID
+                pad_id=self.PAD_ID  # This is now available
             ).to(self.device)
             
             # Load state dict
@@ -287,6 +251,55 @@ class UrduChatbot:
         except Exception as e:
             return f"Error generating response: {str(e)}"
 
+def download_model_from_github():
+    """Download final_model.pt from GitHub releases"""
+    # Updated URL based on your releases page
+    model_url = "https://github.com/Abdulbaset1/Urdu_Chatbot/releases/download/release1/final_model.pt"
+    local_path = "final_model.pt"
+    
+    if os.path.exists(local_path):
+        st.success("✅ Model file found locally")
+        return local_path
+    
+    st.warning("📥 Downloading model file from GitHub Releases...")
+    st.info(f"Download URL: {model_url}")
+    
+    try:
+        response = requests.get(model_url, stream=True)
+        response.raise_for_status()
+        
+        total_size = int(response.headers.get('content-length', 0))
+        block_size = 8192
+        
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        with open(local_path, 'wb') as f:
+            downloaded_size = 0
+            for data in response.iter_content(block_size):
+                f.write(data)
+                downloaded_size += len(data)
+                if total_size > 0:
+                    progress = min(downloaded_size / total_size, 1.0)
+                    progress_bar.progress(progress)
+                    status_text.text(f"Downloaded {downloaded_size}/{total_size} bytes ({progress:.1%})")
+        
+        progress_bar.empty()
+        status_text.empty()
+        
+        # Verify the file was downloaded
+        if os.path.exists(local_path) and os.path.getsize(local_path) > 0:
+            st.success("✅ Model downloaded successfully!")
+            return local_path
+        else:
+            st.error("❌ Downloaded file is empty or missing")
+            return None
+        
+    except Exception as e:
+        st.error(f"❌ Failed to download model: {str(e)}")
+        st.info("Please check the release URL or try uploading the file manually.")
+        return None
+
 def main():
     # Header
     st.markdown('<div class="main-header">🤖 Urdu Chatbot - Transformer Model</div>', unsafe_allow_html=True)
@@ -313,7 +326,13 @@ def main():
     
     # Check for model file and download if needed
     model_path = "final_model.pt"
-    if not os.path.exists(model_path):
+    
+    # Check if model exists locally
+    if os.path.exists(model_path):
+        st.success(f"✅ Model file found: {model_path}")
+        file_size = os.path.getsize(model_path)
+        st.info(f"Model file size: {file_size:,} bytes")
+    else:
         st.warning("⚠️ Model file 'final_model.pt' not found locally.")
         
         col1, col2 = st.columns([2, 1])
@@ -323,21 +342,21 @@ def main():
             <div class="warning-box">
             <h4>Model File Required</h4>
             <p>The model file will be downloaded from GitHub Releases.</p>
+            <p><strong>Release:</strong> release1</p>
+            <p><strong>File:</strong> final_model.pt</p>
             <p>This may take a few moments depending on the file size.</p>
             </div>
             """, unsafe_allow_html=True)
             
-            if st.button("📥 Download Model from GitHub Releases", type="primary"):
-                with st.spinner("Downloading model file..."):
+            if st.button("📥 Download Model from GitHub Releases", type="primary", use_container_width=True):
+                with st.spinner("Downloading model file from GitHub Releases..."):
                     downloaded_path = download_model_from_github()
                     if downloaded_path:
                         st.success("✅ Model downloaded successfully! The app will now reload.")
-                        if hasattr(st, 'rerun'):
-                            st.rerun()
-                        else:
-                            st.experimental_rerun()
+                        time.sleep(2)
+                        st.rerun()
                     else:
-                        st.error("❌ Failed to download model. Please try again.")
+                        st.error("❌ Failed to download model. Please try again or upload manually.")
         
         with col2:
             st.markdown("""
@@ -346,17 +365,18 @@ def main():
             - Or add it to your repository
             """)
             
-            uploaded_file = st.file_uploader("Or upload final_model.pt", type=['pt', 'pth'])
+            uploaded_file = st.file_uploader("Upload final_model.pt", type=['pt', 'pth'], key="model_upload")
             if uploaded_file is not None:
                 with open("final_model.pt", "wb") as f:
                     f.write(uploaded_file.getbuffer())
-                st.success("✅ Model file uploaded successfully! Please refresh the page.")
-                if hasattr(st, 'rerun'):
-                    st.rerun()
-                else:
-                    st.experimental_rerun()
+                file_size = os.path.getsize("final_model.pt")
+                st.success(f"✅ Model file uploaded successfully! Size: {file_size:,} bytes")
+                time.sleep(2)
+                st.rerun()
         
-        return
+        # Stop execution if model is not available
+        if not os.path.exists(model_path):
+            return
 
     # Sidebar
     with st.sidebar:
