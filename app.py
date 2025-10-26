@@ -41,9 +41,11 @@ st.markdown("""
         font-size: 1.2rem;
         direction: rtl;
         text-align: right;
+        color: #000000 !important;
+        line-height: 1.8;
     }
     .response-box {
-        background-color: #163169;
+        background-color: #f0f2f6;
         padding: 1.5rem;
         border-radius: 10px;
         border-left: 5px solid #1f77b4;
@@ -55,6 +57,7 @@ st.markdown("""
         border-radius: 10px;
         border-left: 5px solid #f44336;
         margin: 1rem 0;
+        color: #000000;
     }
     .warning-box {
         background-color: #fff3e0;
@@ -62,6 +65,7 @@ st.markdown("""
         border-radius: 10px;
         border-left: 5px solid #ff9800;
         margin: 1rem 0;
+        color: #000000;
     }
     .download-btn {
         background-color: #4CAF50;
@@ -76,6 +80,15 @@ st.markdown("""
         border-radius: 5px;
         border: none;
         width: 100%;
+    }
+    /* Style for chat messages */
+    .urdu-message {
+        font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif;
+        font-size: 1.1rem;
+        direction: rtl;
+        text-align: right;
+        color: #000000 !important;
+        line-height: 1.6;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -402,7 +415,11 @@ def main():
         
         for example in example_inputs:
             if st.button(example, key=example):
-                st.session_state.user_input = example
+                # Set the example as chat input
+                if 'chat_input' not in st.session_state:
+                    st.session_state.chat_input = ""
+                st.session_state.chat_input = example
+                st.rerun()
 
     # Initialize chatbot
     try:
@@ -412,46 +429,43 @@ def main():
         st.info("Please check that all required files are present and try again.")
         return
 
-    # Main chat interface
+    # Main chat interface - CONTINUOUS CHAT VERSION
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("💬 Chat Interface")
+        st.subheader("💬 Urdu Chatbot")
         
-        # User input
-        user_input = st.text_area(
-            "Type your message in Urdu:",
-            value=st.session_state.get('user_input', ''),
-            height=100,
-            key="user_input",
-            help="Enter your message in Urdu language"
-        )
+        # Initialize chat history
+        if 'messages' not in st.session_state:
+            st.session_state.messages = []
         
-        # Generate button
-        if st.button("Generate Response", type="primary", use_container_width=True):
-            if user_input.strip():
-                with st.spinner("🤖 Generating response..."):
+        # Display chat messages from history on app rerun
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(f'<div class="urdu-message">{message["content"]}</div>', unsafe_allow_html=True)
+        
+        # React to user input
+        if prompt := st.chat_input("Type your message in Urdu..."):
+            # Display user message in chat message container
+            st.chat_message("user").markdown(f'<div class="urdu-message">{prompt}</div>', unsafe_allow_html=True)
+            # Add user message to chat history
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            
+            # Generate and display assistant response
+            with st.chat_message("assistant"):
+                with st.spinner("🤖 Thinking..."):
                     start_time = time.time()
-                    response = chatbot.generate_response(user_input)
+                    response = chatbot.generate_response(prompt)
                     end_time = time.time()
                     
                     # Display response
-                    st.markdown("### Response:")
-                    st.markdown(f'<div class="response-box"><div class="urdu-text">{response}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="urdu-message">{response}</div>', unsafe_allow_html=True)
                     
-                    # Display metrics
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Response Time", f"{(end_time - start_time):.2f}s")
-                    with col2:
-                        st.metric("Input Length", f"{len(user_input)} chars")
-                        
-                    # Store in chat history
-                    if 'chat_history' not in st.session_state:
-                        st.session_state.chat_history = []
-                    st.session_state.chat_history.append((user_input, response))
-            else:
-                st.warning("⚠️ Please enter a message first.")
+                    # Show response time
+                    st.caption(f"Response time: {(end_time - start_time):.2f}s")
+            
+            # Add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
     with col2:
         st.subheader("📊 System Info")
@@ -472,14 +486,14 @@ def main():
         - The model works best with complete sentences
         - Responses are generated word-by-word
         """)
-
-    # Chat history
-    if 'chat_history' in st.session_state and st.session_state.chat_history:
-        st.subheader("📝 Chat History")
-        for i, (input_text, response_text) in enumerate(st.session_state.chat_history[-3:]):
-            with st.expander(f"Conversation {i+1}", expanded=False):
-                st.markdown(f"**You:** {input_text}")
-                st.markdown(f"**Bot:** {response_text}")
+        
+        # Chat controls
+        st.subheader("🛠️ Chat Controls")
+        if st.button("Clear Chat History", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
+        
+        st.info(f"Messages in history: {len(st.session_state.messages)}")
 
     # Footer
     st.markdown("---")
@@ -490,4 +504,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
