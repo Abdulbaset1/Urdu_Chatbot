@@ -91,7 +91,7 @@ st.markdown("""
         font-style: italic;
     }
     
-    /* Chat container styling */
+    /* Chat container styling 
     .chat-container {
         background-color: rgba(255, 255, 255, 0.95);
         border-radius: 15px;
@@ -101,7 +101,7 @@ st.markdown("""
         overflow-y: auto;
         margin-bottom: 20px;
         border: 1px solid #e0e0e0;
-    }
+    }*/
     
     /* Input box styling */
     .stChatInput {
@@ -631,3 +631,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
