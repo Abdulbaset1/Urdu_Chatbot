@@ -1,7 +1,10 @@
 import streamlit as st
 import torch
 import os
-from model import TransformerSeq2Seq
+import requests
+import zipfile
+from pathlib import Path
+from model1 import TransformerSeq2Seq
 from tokenizers import BertWordPieceTokenizer
 import time
 
@@ -41,39 +44,72 @@ st.markdown("""
         border-radius: 10px;
         border: 2px solid #1f77b4;
     }
+    .download-btn {
+        background-color: #ff6b6b;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        text-decoration: none;
+        display: inline-block;
+        margin: 0.5rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 class UrduChatbot:
-    def __init__(self, model_path, tokenizer_path):
+    def __init__(self, model_path, vocab_path):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.tokenizer = self.load_tokenizer(tokenizer_path)
+        self.tokenizer = self.load_tokenizer(vocab_path)
         self.model = self.load_model(model_path)
         self.CLS_ID = self.tokenizer.token_to_id("[CLS]") if self.tokenizer.token_to_id("[CLS]") is not None else None
         self.SEP_ID = self.tokenizer.token_to_id("[SEP]") if self.tokenizer.token_to_id("[SEP]") is not None else None
         self.PAD_ID = self.tokenizer.token_to_id("[PAD]") if self.tokenizer.token_to_id("[PAD]") is not None else 0
         self.max_len = 64
 
-    def load_tokenizer(self, tokenizer_path):
-        """Load the tokenizer"""
-        vocab_path = None
-        for d in [tokenizer_path, os.path.join(tokenizer_path, "")]:
-            cand = os.path.join(d, "vocab.txt")
-            if os.path.exists(cand):
-                vocab_path = cand
-                break
+    def load_tokenizer(self, vocab_path):
+        """Load the tokenizer from vocabulary.txt"""
+        if not os.path.exists(vocab_path):
+            raise FileNotFoundError(f"Vocabulary file not found at: {vocab_path}")
         
-        if vocab_path is None:
-            raise FileNotFoundError("Could not find vocab.txt in tokenization directories")
+        # Create a temporary directory for tokenizer files
+        temp_tokenizer_dir = "temp_tokenizer"
+        os.makedirs(temp_tokenizer_dir, exist_ok=True)
         
-        return BertWordPieceTokenizer(vocab_path, lowercase=False)
+        # Copy vocab file to temp location (tokenizers library expects specific structure)
+        import shutil
+        shutil.copy(vocab_path, os.path.join(temp_tokenizer_dir, "vocab.txt"))
+        
+        try:
+            tokenizer = BertWordPieceTokenizer(os.path.join(temp_tokenizer_dir, "vocab.txt"), lowercase=False)
+            return tokenizer
+        except Exception as e:
+            st.error(f"Error loading tokenizer: {str(e)}")
+            # Fallback: try loading directly
+            return BertWordPieceTokenizer(vocab_path, lowercase=False)
 
     def load_model(self, model_path):
         """Load the trained model"""
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model file not found at: {model_path}")
+            
         checkpoint = torch.load(model_path, map_location=self.device)
         
-        config = checkpoint['config']
-        vocab_size = checkpoint['vocab_size']
+        # Handle different checkpoint formats
+        if 'config' in checkpoint:
+            config = checkpoint['config']
+            vocab_size = checkpoint['vocab_size']
+        else:
+            # Use default config if not in checkpoint
+            config = {
+                "d_model": 256,
+                "num_heads": 2,
+                "enc_layers": 2,
+                "dec_layers": 2,
+                "d_ff": 1024,
+                "dropout": 0.1,
+                "max_len": 64
+            }
+            vocab_size = 10000  # Default, adjust as needed
         
         model = TransformerSeq2Seq(
             vocab_size=vocab_size,
@@ -144,10 +180,51 @@ class UrduChatbot:
         
         return response
 
+def download_file_from_github():
+    """Download final_model.pt from GitHub releases if not exists"""
+    model_path = "final_model.pt"
+    
+    if not os.path.exists(model_path):
+        st.warning("Model file not found. Please ensure 'final_model.pt' is in the root directory.")
+        st.info("You can download it from GitHub Releases and place it in the same folder as app.py")
+        
+        # Provide download instructions
+        st.markdown("""
+        ### How to get the model file:
+        
+        1. Go to your GitHub repository's Releases section
+        2. Download the `final_model.pt` file
+        3. Place it in the same directory as this app
+        4. Refresh the page
+        
+        Alternatively, you can upload the model file directly:
+        """)
+        
+        uploaded_file = st.file_uploader("Upload final_model.pt", type=['pt', 'pth'])
+        if uploaded_file is not None:
+            with open("final_model.pt", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            st.success("Model file uploaded successfully! Please refresh the page.")
+            return False
+    
+    return os.path.exists(model_path)
+
 def main():
     # Header
     st.markdown('<div class="main-header">🤖 Urdu Chatbot - Transformer Model</div>', unsafe_allow_html=True)
     
+    # Check for required files
+    vocab_exists = os.path.exists("vocabulary.txt")
+    model_exists = download_file_from_github()
+    
+    if not vocab_exists:
+        st.error("❌ 'vocabulary.txt' file not found. Please ensure it's in the root directory.")
+        return
+    
+    if not model_exists:
+        st.error("❌ Model file not found. Please follow the instructions above to add the model file.")
+        return
+
     # Sidebar
     with st.sidebar:
         st.header("About")
@@ -182,27 +259,17 @@ def main():
     # Initialize chatbot
     @st.cache_resource
     def load_chatbot():
-        model_path = "best_model.pth"  # Update this path if needed
-        tokenizer_path = "tokenization"  # Update this path if needed
-        
-        if not os.path.exists(model_path):
-            st.error(f"Model file not found at: {model_path}")
-            return None
-        if not os.path.exists(tokenizer_path):
-            st.error(f"Tokenizer directory not found at: {tokenizer_path}")
-            return None
-            
         try:
-            chatbot = UrduChatbot(model_path, tokenizer_path)
+            chatbot = UrduChatbot("final_model.pt", "vocabulary.txt")
             return chatbot
         except Exception as e:
-            st.error(f"Error loading model: {str(e)}")
+            st.error(f"Error loading chatbot: {str(e)}")
             return None
 
     chatbot = load_chatbot()
     
     if chatbot is None:
-        st.error("Failed to load the chatbot. Please check the model files.")
+        st.error("Failed to load the chatbot. Please check the error message above.")
         return
 
     # Main chat interface
@@ -238,6 +305,11 @@ def main():
                         st.metric("Response Time", f"{(end_time - start_time):.2f}s")
                     with col2:
                         st.metric("Input Length", f"{len(user_input)} chars")
+                        
+                    # Store in chat history
+                    if 'chat_history' not in st.session_state:
+                        st.session_state.chat_history = []
+                    st.session_state.chat_history.append((user_input, response))
             else:
                 st.warning("Please enter a message first.")
 
@@ -264,14 +336,10 @@ def main():
         """)
 
     # Chat history (optional)
-    if 'chat_history' not in st.session_state:
-        st.session_state.chat_history = []
-
-    # Display chat history
-    if st.session_state.chat_history:
+    if 'chat_history' in st.session_state and st.session_state.chat_history:
         st.subheader("📝 Chat History")
         for i, (input_text, response_text) in enumerate(st.session_state.chat_history[-5:]):  # Show last 5
-            with st.expander(f"Conversation {i+1}"):
+            with st.expander(f"Conversation {i+1}", expanded=False):
                 st.markdown(f"**You:** {input_text}")
                 st.markdown(f"**Bot:** {response_text}")
 
