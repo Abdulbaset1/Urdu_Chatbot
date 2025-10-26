@@ -601,11 +601,11 @@ def main():
         
         st.subheader("Sample Text 🙂")
         st.markdown("""
-            السلام علیکم
-            آپ کا نام کیا ہے
-            موسم کیسا ہے
-            آپ کیسے ہیں
-             شکریہ
+           - السلام علیکم
+           - آپ کا نام کیا ہے
+           - موسم کیسا ہے
+           - آپ کیسے ہیں
+           - شکریہ
         """)
         
         # Chat controls
@@ -625,10 +625,11 @@ def main():
     # Footer
     st.markdown("---")
     st.markdown(
-   "Created By Abdul Basit ❄️ & Rehana Hassan "
+   "Created By **Abdul Basit** ❄️ & **Rehana Hassan** 🦢 "
     )
 
 if __name__ == "__main__":
     main()
+
 
 
