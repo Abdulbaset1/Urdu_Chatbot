@@ -27,68 +27,155 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS for better styling with improved colors and chat interface
 st.markdown("""
 <style>
+    /* Main header styling */
     .main-header {
         font-size: 2.5rem;
-        color: #1f77b4;
+        background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
+        font-weight: bold;
     }
+    
+    /* Urdu text styling */
     .urdu-text {
         font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif;
         font-size: 1.2rem;
         direction: rtl;
         text-align: right;
-        color: #f0f2f7 !important;
+        color: #000000 !important;
         line-height: 1.8;
     }
-    .response-box {
-        background-color: #f0f2f7;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border-left: 5px solid #1f77b4;
-        margin: 1rem 0;
-    }
-    .error-box {
-        background-color: #ffebee;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 5px solid #f44336;
-        margin: 1rem 0;
-        color: #000000;
-    }
-    .warning-box {
-        background-color: #fff3e0;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 5px solid #ff9800;
-        margin: 1rem 0;
-        color: #000000;
-    }
-    .download-btn {
-        background-color: #4CAF50;
+    
+    /* Chat message styling */
+    .user-message {
+        background: linear-gradient(135deg, #4facfe, #00f2fe);
         color: white;
-        padding: 12px 24px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 10px 0;
-        cursor: pointer;
-        border-radius: 5px;
-        border: none;
-        width: 100%;
+        padding: 12px 16px;
+        border-radius: 18px;
+        border-bottom-right-radius: 5px;
+        margin: 8px 0;
+        max-width: 80%;
+        margin-left: auto;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    /* Style for chat messages */
-    .urdu-message {
-        font-family: 'Noto Sans Arabic', 'Segoe UI', sans-serif;
-        font-size: 1.1rem;
-        direction: rtl;
-        text-align: right;
-        color: #000000 !important;
-        line-height: 1.6;
+    
+    .bot-message {
+        background: #f1f1f1;
+        color: #333;
+        padding: 12px 16px;
+        border-radius: 18px;
+        border-bottom-left-radius: 5px;
+        margin: 8px 0;
+        max-width: 80%;
+        margin-right: auto;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .message-time {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-top: 5px;
+        text-align: left;
+    }
+    
+    .response-time {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-top: 5px;
+        text-align: left;
+        font-style: italic;
+    }
+    
+    /* Chat container styling */
+    .chat-container {
+        background-color: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        height: 500px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        border: 1px solid #e0e0e0;
+    }
+    
+    /* Input box styling */
+    .stChatInput {
+        background: white;
+        border-radius: 25px;
+        border: 2px solid #e0e0e0 !important;
+        padding: 10px;
+        margin-top: 20px;
+    }
+    
+    .stChatInput:focus-within {
+        border-color: #1a2a6c !important;
+        box-shadow: 0 0 0 2px rgba(26, 42, 108, 0.2) !important;
+    }
+    
+    /* Button styling */
+    .stButton button {
+        background: linear-gradient(135deg, #1a2a6c, #b21f1f) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 10px 20px !important;
+        font-weight: bold !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stButton button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: linear-gradient(135deg, #f5f7fa, #c3cfe2) !important;
+    }
+    
+    /* Progress bar */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+    }
+    
+    /* Scrollbar styling */
+    .chat-container::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .chat-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .chat-container::-webkit-scrollbar-thumb {
+        background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+        border-radius: 10px;
+    }
+    
+    .chat-container::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, #152256, #8a1919);
+    }
+    
+    /* Animation for new messages */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .message-animation {
+        animation: fadeInUp 0.3s ease-out;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -313,9 +400,27 @@ def download_model_from_github():
         st.info("Please check the release URL or try uploading the file manually.")
         return None
 
+def display_chat_message(role, content, response_time=None):
+    """Display a chat message with proper styling"""
+    if role == "user":
+        st.markdown(f"""
+        <div class="user-message message-animation">
+            <div class="urdu-text">{content}</div>
+            <div class="message-time">{time.strftime('%H:%M:%S')}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="bot-message message-animation">
+            <div class="urdu-text">{content}</div>
+            <div class="message-time">{time.strftime('%H:%M:%S')}</div>
+            {f'<div class="response-time">Response time: {response_time}</div>' if response_time else ''}
+        </div>
+        """, unsafe_allow_html=True)
+
 def main():
     # Header
-    st.markdown('<div class="main-header">🤖 Urdu Chatbot - Transformer Model</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">🤖 اردو چیٹ بوٹ</div>', unsafe_allow_html=True)
     
     # Display system info
     st.sidebar.markdown("### System Information")
@@ -330,7 +435,7 @@ def main():
     if not os.path.exists("vocabulary.txt"):
         st.error("❌ 'vocabulary.txt' file not found.")
         st.markdown("""
-        <div class="error-box">
+        <div style="background-color: #ffebee; padding: 1rem; border-radius: 10px; border-left: 5px solid #f44336; margin: 1rem 0;">
         <h4>Missing Vocabulary File</h4>
         <p>Please ensure 'vocabulary.txt' is in the same directory as this app.</p>
         </div>
@@ -352,7 +457,7 @@ def main():
         
         with col1:
             st.markdown("""
-            <div class="warning-box">
+            <div style="background-color: #fff3e0; padding: 1rem; border-radius: 10px; border-left: 5px solid #ff9800; margin: 1rem 0;">
             <h4>Model File Required</h4>
             <p>The model file will be downloaded from GitHub Releases.</p>
             <p><strong>Release:</strong> release1</p>
@@ -414,61 +519,76 @@ def main():
         ]
         
         for example in example_inputs:
-            if st.button(example, key=example):
+            if st.button(example, key=example, use_container_width=True):
                 # Set the example as chat input
-                if 'chat_input' not in st.session_state:
-                    st.session_state.chat_input = ""
-                st.session_state.chat_input = example
+                if 'last_input' not in st.session_state:
+                    st.session_state.last_input = ""
+                st.session_state.last_input = example
                 st.rerun()
 
     # Initialize chatbot
     try:
         chatbot = UrduChatbot(model_path, "vocabulary.txt")
+        st.success("✅ Chatbot initialized successfully!")
     except Exception as e:
         st.error(f"❌ Failed to initialize chatbot: {str(e)}")
         st.info("Please check that all required files are present and try again.")
         return
 
-    # Main chat interface - CONTINUOUS CHAT VERSION
+    # Main chat interface
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("💬 Urdu Chatbot")
+        st.subheader("💬 چیٹ باکس")
         
         # Initialize chat history
         if 'messages' not in st.session_state:
             st.session_state.messages = []
         
-        # Display chat messages from history on app rerun
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(f'<div class="urdu-message">{message["content"]}</div>', unsafe_allow_html=True)
+        # Chat container
+        with st.container():
+            st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+            
+            # Display chat messages
+            for message in st.session_state.messages:
+                if message["role"] == "user":
+                    display_chat_message("user", message["content"])
+                else:
+                    display_chat_message("bot", message["content"], message.get("response_time"))
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
+        # Chat input with custom styling
+        if 'last_input' in st.session_state:
+            default_value = st.session_state.last_input
+            del st.session_state.last_input
+        else:
+            default_value = ""
+            
         # React to user input
-        if prompt := st.chat_input("Type your message in Urdu..."):
-            # Display user message in chat message container
-            st.chat_message("user").markdown(f'<div class="urdu-message">{prompt}</div>', unsafe_allow_html=True)
+        if prompt := st.chat_input("اپنا پیغام اردو میں لکھیں...", key="chat_input"):
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
             
             # Generate and display assistant response
-            with st.chat_message("assistant"):
-                with st.spinner("🤖 Thinking..."):
-                    start_time = time.time()
-                    response = chatbot.generate_response(prompt)
-                    end_time = time.time()
-                    
-                    # Display response
-                    st.markdown(f'<div class="urdu-message">{response}</div>', unsafe_allow_html=True)
-                    
-                    # Show response time
-                    st.caption(f"Response time: {(end_time - start_time):.2f}s")
+            with st.spinner("🤖 جواب تیار ہو رہا ہے..."):
+                start_time = time.time()
+                response = chatbot.generate_response(prompt)
+                end_time = time.time()
+                response_time = f"{(end_time - start_time):.2f}s"
             
             # Add assistant response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": response,
+                "response_time": response_time
+            })
+            
+            # Rerun to update the display
+            st.rerun()
 
     with col2:
-        st.subheader("📊 System Info")
+        st.subheader("📊 نظام کی معلومات")
         
         st.info(f"""
         **System Specifications:**
@@ -479,29 +599,35 @@ def main():
         - Model: Loaded successfully
         """)
         
-        st.subheader("💡 Tips")
+        st.subheader("💡 تجاویز")
         st.markdown("""
-        - Use proper Urdu punctuation
-        - Keep sentences clear and concise  
-        - The model works best with complete sentences
-        - Responses are generated word-by-word
+        - مناسب اردو علامات استعمال کریں
+        - جملے واضح اور جامع رکھیں
+        - ماڈل مکمل جملوں کے ساتھ بہتر کام کرتا ہے
+        - جواب لفظ بہ لفظ تیار ہوتے ہیں
         """)
         
         # Chat controls
-        st.subheader("🛠️ Chat Controls")
-        if st.button("Clear Chat History", use_container_width=True):
+        st.subheader("🛠️ چیٹ کنٹرولز")
+        if st.button("مکالمہ صاف کریں", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
         
-        st.info(f"Messages in history: {len(st.session_state.messages)}")
+        # Display chat statistics
+        user_messages = len([m for m in st.session_state.messages if m["role"] == "user"])
+        bot_messages = len([m for m in st.session_state.messages if m["role"] == "assistant"])
+        
+        st.metric("کل پیغامات", len(st.session_state.messages))
+        st.metric("صارف کے پیغامات", user_messages)
+        st.metric("بوٹ کے پیغامات", bot_messages)
 
     # Footer
     st.markdown("---")
     st.markdown(
-        "Built with ❤️ using Streamlit and PyTorch | "
-        "Transformer Model for Urdu Language Processing"
+        "**اردو چیٹ بوٹ** | "
+        "Streamlit اور PyTorch کے ساتھ بنایا گیا | "
+        "ٹرانسفارمر ماڈل برائے اردو زبان کی پروسیسنگ"
     )
 
 if __name__ == "__main__":
     main()
-
