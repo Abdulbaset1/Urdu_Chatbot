@@ -41,11 +41,11 @@ st.markdown("""
         font-size: 1.2rem;
         direction: rtl;
         text-align: right;
-        color: #000000 !important;
+        color: #f0f2f7 !important;
         line-height: 1.8;
     }
     .response-box {
-        background-color: #f0f2f6;
+        background-color: #f0f2f7;
         padding: 1.5rem;
         border-radius: 10px;
         border-left: 5px solid #1f77b4;
@@ -504,3 +504,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
