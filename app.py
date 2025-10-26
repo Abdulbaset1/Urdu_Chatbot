@@ -2,20 +2,20 @@ import streamlit as st
 import os
 import sys
 import time
+import requests
+import zipfile
+from pathlib import Path
 
 # Check if we're in Streamlit Cloud and configure PyTorch accordingly
 if 'STREAMLIT_SHARING_MODE' in os.environ:
-    os.environ['TORCH_CUDA_VERSION'] = 'cu118'  # Use CUDA 11.8 if available
-    os.environ['TORCH_CPU_ONLY'] = '1'  # Force CPU if needed
+    os.environ['TORCH_CUDA_VERSION'] = 'cu118'
+    os.environ['TORCH_CPU_ONLY'] = '1'
 
 try:
     import torch
     st.success("✅ PyTorch imported successfully")
 except ImportError as e:
     st.error(f"❌ PyTorch import failed: {e}")
-    st.info("Trying to install PyTorch...")
-    
-    # This is a fallback - in Streamlit Cloud, dependencies should be in requirements.txt
     st.stop()
 
 from model1 import TransformerSeq2Seq
@@ -65,8 +65,59 @@ st.markdown("""
         border-left: 5px solid #ff9800;
         margin: 1rem 0;
     }
+    .download-btn {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 5px;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+def download_model_from_github():
+    """Download final_model.pt from GitHub releases"""
+    model_url = "https://github.com/Abdulbaset1/Urdu_Chatbot/releases/download/final_model/final_model.pt"
+    local_path = "final_model.pt"
+    
+    if os.path.exists(local_path):
+        return local_path
+    
+    st.warning("📥 Downloading model file from GitHub Releases...")
+    
+    try:
+        response = requests.get(model_url, stream=True)
+        response.raise_for_status()
+        
+        total_size = int(response.headers.get('content-length', 0))
+        block_size = 8192
+        
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        with open(local_path, 'wb') as f:
+            downloaded_size = 0
+            for data in response.iter_content(block_size):
+                f.write(data)
+                downloaded_size += len(data)
+                if total_size > 0:
+                    progress = min(downloaded_size / total_size, 1.0)
+                    progress_bar.progress(progress)
+                    status_text.text(f"Downloaded {downloaded_size}/{total_size} bytes ({progress:.1%})")
+        
+        progress_bar.empty()
+        status_text.empty()
+        st.success("✅ Model downloaded successfully!")
+        return local_path
+        
+    except Exception as e:
+        st.error(f"❌ Failed to download model: {str(e)}")
+        return None
 
 class UrduChatbot:
     def __init__(self, model_path, vocab_path):
@@ -249,7 +300,7 @@ def main():
     except:
         st.sidebar.write("PyTorch: Not available")
     
-    # Check for required files
+    # Check for vocabulary file
     if not os.path.exists("vocabulary.txt"):
         st.error("❌ 'vocabulary.txt' file not found.")
         st.markdown("""
@@ -260,22 +311,51 @@ def main():
         """, unsafe_allow_html=True)
         return
     
-    if not os.path.exists("final_model.pt"):
-        st.warning("⚠️ Model file 'final_model.pt' not found.")
-        st.markdown("""
-        <div class="warning-box">
-        <h4>Model File Required</h4>
-        <p>Please ensure 'final_model.pt' is in the same directory as this app.</p>
-        <p>You can upload it here:</p>
-        </div>
-        """, unsafe_allow_html=True)
+    # Check for model file and download if needed
+    model_path = "final_model.pt"
+    if not os.path.exists(model_path):
+        st.warning("⚠️ Model file 'final_model.pt' not found locally.")
         
-        uploaded_file = st.file_uploader("Upload final_model.pt", type=['pt', 'pth'])
-        if uploaded_file is not None:
-            with open("final_model.pt", "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            st.success("✅ Model file uploaded successfully! Please refresh the page.")
-            st.experimental_rerun()
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.markdown("""
+            <div class="warning-box">
+            <h4>Model File Required</h4>
+            <p>The model file will be downloaded from GitHub Releases.</p>
+            <p>This may take a few moments depending on the file size.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("📥 Download Model from GitHub Releases", type="primary"):
+                with st.spinner("Downloading model file..."):
+                    downloaded_path = download_model_from_github()
+                    if downloaded_path:
+                        st.success("✅ Model downloaded successfully! The app will now reload.")
+                        if hasattr(st, 'rerun'):
+                            st.rerun()
+                        else:
+                            st.experimental_rerun()
+                    else:
+                        st.error("❌ Failed to download model. Please try again.")
+        
+        with col2:
+            st.markdown("""
+            **Alternative Options:**
+            - Upload the model file directly
+            - Or add it to your repository
+            """)
+            
+            uploaded_file = st.file_uploader("Or upload final_model.pt", type=['pt', 'pth'])
+            if uploaded_file is not None:
+                with open("final_model.pt", "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                st.success("✅ Model file uploaded successfully! Please refresh the page.")
+                if hasattr(st, 'rerun'):
+                    st.rerun()
+                else:
+                    st.experimental_rerun()
+        
         return
 
     # Sidebar
@@ -306,7 +386,7 @@ def main():
 
     # Initialize chatbot
     try:
-        chatbot = UrduChatbot("final_model.pt", "vocabulary.txt")
+        chatbot = UrduChatbot(model_path, "vocabulary.txt")
     except Exception as e:
         st.error(f"❌ Failed to initialize chatbot: {str(e)}")
         st.info("Please check that all required files are present and try again.")
@@ -362,6 +442,7 @@ def main():
         - Vocabulary Size: {chatbot.tokenizer.get_vocab_size()}
         - Max Length: {chatbot.max_len}
         - PyTorch: {torch.__version__}
+        - Model: Loaded successfully
         """)
         
         st.subheader("💡 Tips")
